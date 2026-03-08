@@ -12,17 +12,23 @@ from sqlalchemy.sql import func
 from app.db.base import Base
 
 
+from sqlalchemy import Boolean
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False, index=True)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, default="USER")
+    is_active = Column(Boolean, default=True)
 
     orders = relationship(
         "Order",
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
 
 
 class Order(Base):
