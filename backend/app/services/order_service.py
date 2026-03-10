@@ -1,8 +1,9 @@
+from decimal import Decimal
+
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.db.models import Order
-from app.utils.exceptions import BadRequestException
 
 
 class OrderService:
@@ -11,7 +12,7 @@ class OrderService:
     def create_order(
         db: Session,
         user_id: int,
-        total_amount,
+        total_amount: Decimal,
     ) -> Order:
 
         order = Order(

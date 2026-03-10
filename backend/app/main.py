@@ -7,6 +7,7 @@ from app.api.v1 import health
 from app.api.v1 import users
 from app.api.v1 import orders
 from app.api.v1 import auth
+from app.api.v1 import rbac
 
 
 def create_app() -> FastAPI:
@@ -45,6 +46,12 @@ def create_app() -> FastAPI:
         orders.router,
         prefix="/api/v1/orders",
         tags=["Orders"],
+    )
+
+    app.include_router(
+        rbac.router,
+        prefix="/api/v1/rbac",
+        tags=["RBAC"],
     )
 
     return app

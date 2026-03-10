@@ -2,20 +2,12 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
 
 
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
+from app.schemas.rbac import RoleResponse
 
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
-    role: str
+    role: RoleResponse
     is_active: bool
     created_at: datetime
 

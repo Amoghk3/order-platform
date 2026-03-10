@@ -7,7 +7,8 @@ import sys
 sys.path.append(os.path.abspath(os.getcwd()))
 
 from app.db.base import Base
-from app.db import models  # noqa: F401 (important for autogenerate)
+from app.db import models  # noqa: F401
+from app.db import rbac_models  # noqa: F401
 from app.core.config import settings
 
 config = context.config
