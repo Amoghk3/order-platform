@@ -13,7 +13,6 @@ from sqlalchemy.sql import func
 from app.db.base import Base
 
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -31,7 +30,6 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
-
 
 
 class Order(Base):

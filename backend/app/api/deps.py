@@ -21,14 +21,22 @@ def get_db():
         db.close()
 
 
+DbSession = Annotated[Session, Depends(get_db)]
+
+
 def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
-    db: Annotated[Session, Depends(get_db)],
-):
+    db: DbSession,
+) -> User:
+    """
+    Decode the JWT and load the user from DB.
+    The same `db` session injected here is reused by downstream
+    dependencies (require_permission) — no second session is opened.
+    """
     try:
         payload = decode_token(token)
         user_id = int(payload.get("sub"))
-    except (JWTError, ValueError):
+    except (JWTError, ValueError, TypeError):
         raise HTTPException(status_code=401, detail="Invalid token")
 
     stmt = select(User).where(User.id == user_id)
@@ -38,26 +46,34 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Inactive user")
+
     return user
 
 
-from app.services.rbac_service import RBACService
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+from app.services.rbac_service import RBACService  # noqa: E402 (avoid circular at top)
 
 
 def require_permission(*permission_names: str):
     """
-    Dependency factory to check if a user has one or more permissions.
-    If multiple permissions are provided, the user must have ALL of them.
+    Dependency factory — checks that the current user holds ALL of the
+    listed permissions.  Reuses the *same* DB session as get_current_user
+    so that no extra session is opened and no ORM objects are detached.
     """
     def _check(
-        user: Annotated[User, Depends(get_current_user)],
-        db: Annotated[Session, Depends(get_db)],
-    ):
+        user: CurrentUser,
+        db: DbSession,
+    ) -> User:
         for perm in permission_names:
             if not RBACService.has_permission(db, user.id, perm):
                 raise HTTPException(
                     status_code=403,
-                    detail=f"Insufficient permissions. Missing: {perm}"
+                    detail=f"Insufficient permissions. Missing: '{perm}'",
                 )
         return user
+
     return _check

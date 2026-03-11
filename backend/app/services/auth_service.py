@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-
 from sqlalchemy import select
 
 from app.db.models import User
@@ -13,20 +12,19 @@ from app.utils.exceptions import BadRequestException, NotFoundException
 
 
 class AuthService:
+
     @staticmethod
     def register(db: Session, email: str, password: str) -> User:
         existing = db.query(User).filter(User.email == email).first()
         if existing:
             raise BadRequestException("Email already registered")
 
-        # Get default user role
         stmt = select(Role).where(Role.name == "user")
         result = db.execute(stmt)
         default_role = result.scalar_one_or_none()
 
         if not default_role:
-            # Fallback if DB isn't seeded properly
-            raise NotFoundException("Default role 'user' not found in system")
+            raise NotFoundException("Default role 'user' not found. Seed the roles table first.")
 
         user = User(
             email=email,
@@ -42,7 +40,14 @@ class AuthService:
 
     @staticmethod
     def login(db: Session, email: str, password: str) -> dict:
-        user = db.query(User).filter(User.email == email).first()
+        # Eagerly join Role so user.role is always loaded in this session
+        stmt = (
+            select(User)
+            .join(Role, User.role_id == Role.id)
+            .where(User.email == email)
+        )
+        result = db.execute(stmt)
+        user = result.scalar_one_or_none()
 
         if not user:
             raise NotFoundException("Invalid credentials")
@@ -50,6 +55,10 @@ class AuthService:
         if not verify_password(password, user.hashed_password):
             raise BadRequestException("Invalid credentials")
 
+        if not user.is_active:
+            raise BadRequestException("Account is inactive")
+
+        # user.role is guaranteed loaded because of the join above
         token = create_access_token(
             {"sub": str(user.id), "role": user.role.name}
         )

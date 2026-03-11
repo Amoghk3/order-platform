@@ -1,13 +1,10 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.bootstrap import bootstrap
 
-from app.api.v1 import health
-from app.api.v1 import users
-from app.api.v1 import orders
-from app.api.v1 import auth
-from app.api.v1 import rbac
+from app.api.v1.router import router as v1_router
 
 
 def create_app() -> FastAPI:
@@ -23,35 +20,19 @@ def create_app() -> FastAPI:
         description="Order Management API with Authentication",
     )
 
-    # Register routers
+    # CORS — allow the React dev server
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Register API v1
     app.include_router(
-        health.router,
+        v1_router,
         prefix="/api/v1",
-        tags=["Health"],
-    )
-
-    app.include_router(
-        auth.router,
-        prefix="/api/v1/auth",
-        tags=["Authentication"],
-    )
-
-    app.include_router(
-        users.router,
-        prefix="/api/v1/users",
-        tags=["Users"],
-    )
-
-    app.include_router(
-        orders.router,
-        prefix="/api/v1/orders",
-        tags=["Orders"],
-    )
-
-    app.include_router(
-        rbac.router,
-        prefix="/api/v1/rbac",
-        tags=["RBAC"],
     )
 
     return app
